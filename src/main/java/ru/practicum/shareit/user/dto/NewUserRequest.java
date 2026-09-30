@@ -8,8 +8,7 @@ import lombok.Data;
 public class NewUserRequest {
     @NotBlank(message = "Имя не должно быть пустым")
     private String name;
-    @Email(regexp = "^[A-Za-z0-9+_.-]+@[A-Za-z0-9.-]+\\.[A-Za-z]{2,}$",
-            message = "Неправильно указан email")
+    @Email(message = "Неправильно указан email")
     @NotBlank(message = "Email не должен быть пустым")
     private String email;
 

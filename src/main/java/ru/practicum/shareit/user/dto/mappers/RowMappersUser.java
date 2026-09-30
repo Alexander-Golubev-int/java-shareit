@@ -2,6 +2,7 @@ package ru.practicum.shareit.user.dto.mappers;
 
 import org.springframework.jdbc.core.RowMapper;
 import org.springframework.stereotype.Component;
+import ru.practicum.shareit.user.dto.UpdateUserRequest;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.model.User;
 
@@ -18,6 +19,7 @@ public class RowMappersUser implements RowMapper<User> {
         user.setEmail(rs.getString("email"));
         return user;
     }
+
     public static UserDto mapToUserDtoWithId(User user) {
         UserDto dto = new UserDto();
         dto.setId(user.getId());
@@ -25,6 +27,7 @@ public class RowMappersUser implements RowMapper<User> {
         dto.setEmail(user.getEmail());
         return dto;
     }
+
     public static UserDto mapToUserDtoWithoutId(User user) {
         UserDto dto = new UserDto();
         dto.setName(user.getName());
@@ -32,18 +35,13 @@ public class RowMappersUser implements RowMapper<User> {
         return dto;
     }
 
-//    public User updateUserFields(User user, UpdateUserRequestDto request) {
-//        if (request.hasEmail()) {
-//            user.setEmail(request.getEmail());
-//        }
-//        if (request.hasLogin()) {
-//            user.setLogin(request.getLogin());
-//        }
-//        if (request.hasName()) {
-//            user.setName(request.getName());
-//        }
-//        if ((request.hasBirthday()))
-//            user.setBirthday(user.getBirthday());
-//        return user;
-//    }
+    public static User updateUserFields(User user, UpdateUserRequest request) {
+        if (request.getName() != null) {
+            user.setName(request.getName());
+        }
+        if (request.getEmail() != null) {
+            user.setEmail(request.getEmail());
+        }
+        return user;
+    }
 }

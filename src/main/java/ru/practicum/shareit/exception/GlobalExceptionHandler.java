@@ -1,5 +1,7 @@
 package ru.practicum.shareit.exception;
 
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.validation.FieldError;
@@ -11,6 +13,7 @@ import ru.practicum.shareit.exception.model.ValidationException;
 import java.util.HashMap;
 import java.util.Map;
 
+@Slf4j
 @RestControllerAdvice
 public class GlobalExceptionHandler {
 
@@ -22,13 +25,13 @@ public class GlobalExceptionHandler {
             String errorMessage = error.getDefaultMessage();
             errors.put(fieldName, errorMessage);
         });
-
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(errors);
     }
 
     @ExceptionHandler(InternalError.class)
     public ResponseEntity<Map<String, String>> handlerHttpMessageInternalServerError() {
         Map<String, String> errors = new HashMap<>();
+        log.error("Внутреняя ошибка сервера.");
         errors.put("error:", "При обработке запроса произошла ошибка");
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errors);
     }
@@ -37,6 +40,15 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handlerHttpMessageValidationException(ValidationException e) {
         Map<String, String> errors = new HashMap<>();
         errors.put("error:", e.getMessage());
+        log.error(e.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(errors);
+    }
+
+    @ExceptionHandler(DuplicateKeyException.class)
+    public ResponseEntity<Map<String, String>> handleDuplicate(DuplicateKeyException e) {
+        Map<String, String> errors = new HashMap<>();
+        errors.put("error", e.getMessage());
+        log.error(e.getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errors);
     }
 }
