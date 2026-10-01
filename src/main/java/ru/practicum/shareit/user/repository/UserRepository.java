@@ -40,7 +40,7 @@ public class UserRepository {
             }, keyHolder);
             log.info("Пользователь с id: {} успешно создан", keyHolder.getKey());
         } catch (DuplicateKeyException e) {
-            log.info("Попытка создания пользователя с почтой которая уже есть в бд: {}", newUserRequest.getEmail());
+            log.error("Попытка создания пользователя с почтой которая уже есть в бд: {}", newUserRequest.getEmail());
             throw new ValidationException("Пользователь с email: " + newUserRequest.getEmail() + " уже существует");
         }
         Long userId = keyHolder.getKeyAs(Long.class);

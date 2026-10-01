@@ -12,6 +12,8 @@ import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.repository.ItemRepository;
 import ru.practicum.shareit.user.service.UserService;
 
+import java.util.List;
+
 @Service
 @Slf4j
 @RequiredArgsConstructor
@@ -37,5 +39,30 @@ public class ItemService {
         }
         RowMappersItem.updateItemFields(oldItem, updateItemRequest);
         return RowMappersItem.mapToItemDto(itemRepository.updateItemFields(oldItem));
+    }
+
+    public ItemDto getItemByID(Long userId, Long itemId) {
+        log.info("Попытка запросить информацию о вещи c id {} пользователем с user_id: {}",
+                itemId, userId);
+        userService.getUserById(userId);
+        Item oldItem = itemRepository.getItemById(itemId);
+        log.info("Проверка, что полученная вещь принадлежит владельцу вещи");
+        if (!userId.equals(oldItem.getUserId())) {
+            log.error("Ошибка. Попытка получить доступ к вещь не принадлежащую пользователю с id {}", userId);
+            throw new NotFoundException("Вещь с id " + itemId + " не найдена");
+        }
+        return RowMappersItem.mapToItemDto(oldItem);
+    }
+
+    public List<ItemDto> getAllItems(Long userId) {
+        log.info("Попытка запросить информацию о всех вещах пользователя с user_id: {}", userId);
+        userService.getUserById(userId);
+        return itemRepository.getAllItems(userId).stream().map(RowMappersItem::mapToItemDto).toList();
+    }
+
+    public List<ItemDto> getAllItemsBySearch(Long userId, String text) {
+        userService.getUserById(userId);
+        log.info("Поиск вещей по названию и описанию используя текст = {}", text);
+        return itemRepository.getAllItemsBySearch(text).stream().map(RowMappersItem::mapToItemDto).toList();
     }
 }

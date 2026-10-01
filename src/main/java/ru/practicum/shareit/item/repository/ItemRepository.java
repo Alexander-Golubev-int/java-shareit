@@ -3,7 +3,6 @@ package ru.practicum.shareit.item.repository;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataAccessException;
-import org.springframework.dao.DuplicateKeyException;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
@@ -16,6 +15,7 @@ import ru.practicum.shareit.item.model.Item;
 
 import java.sql.PreparedStatement;
 import java.sql.Statement;
+import java.util.List;
 
 
 @Slf4j
@@ -29,8 +29,9 @@ public class ItemRepository {
             "?, ?)";
     private static final String FIND_BY_ID_QUERY = "SELECT * FROM items WHERE id = ?";
     private static final String UPDATE_ITEM = "UPDATE items SET name = ?, description = ?, available = ? WHERE id = ?";
-    private static final String DELETE_USER = "DELETE FROM users WHERE id = ?";
-
+    private static final String SELECT_ALL_ITEMS_BY_USER_ID = "SELECT * FROM items WHERE owner_id = ?";
+    private static final String SEARCH_ITEMS = "SELECT * FROM items WHERE available = true AND (LOWER(name) LIKE LOWER" +
+            "(?) OR LOWER(description) LIKE LOWER(?))";
 
     public Item createItem(Long userId, NewItemRequest newItemRequest) {
         GeneratedKeyHolder keyHolder = new GeneratedKeyHolder();
@@ -45,7 +46,7 @@ public class ItemRepository {
             }, keyHolder);
             log.info("Вещь с id: {} успешно создана", keyHolder.getKey());
         } catch (DataAccessException e) {
-            log.info("При добавлении новой вещи в бд произошла ошибка. Трасса: {}", e.getMessage());
+            log.error("При добавлении новой вещи в бд произошла ошибка. Трасса: {}", e.getMessage());
             throw new ValidationException("При добавлении вещи произошла ошибка. Попробуйте позже или измените тело " +
                     "запроса.");
         }
@@ -60,7 +61,7 @@ public class ItemRepository {
                     itemToUpdate.getAvailable(), itemToUpdate.getId());
             return getItemById(itemToUpdate.getId());
         } catch (DataAccessException e) {
-            log.info("При обновлении вещи в бд произошла ошибка. Трасса: {}", e.getMessage());
+            log.error("При обновлении вещи в бд произошла ошибка. Трасса: {}", e.getMessage());
             throw new ValidationException("При обновлении информации о вещи произошла ошибка. Попробуйте позже или " +
                     "измените тело запроса.");
         }
@@ -74,4 +75,25 @@ public class ItemRepository {
             throw new NotFoundException("Вещь с id " + id + " не существует");
         }
     }
+
+    public List<Item> getAllItems(Long id) {
+        try {
+            log.info("Поиск всех вещей пользователя с id {}", id);
+            return jdbc.query(SELECT_ALL_ITEMS_BY_USER_ID, rowMappersItem, id);
+        } catch (DataAccessException e) {
+            log.error("При получение всех вещей из бд произошла ошибка. Трасса: {}", e.getMessage());
+            throw new ValidationException("При получении информации о вещах произошла ошибка. Попробуйте позже.");
+        }
+    }
+
+    public List<Item> getAllItemsBySearch(String text) {
+        try {
+            return jdbc.query(SEARCH_ITEMS, rowMappersItem, text, text);
+        } catch (DataAccessException e) {
+            log.error("При получение всех вещей по описанию и названию из бд произошла ошибка. Трасса: {}",
+                    e.getMessage());
+            throw new ValidationException("При получении информации о вещах произошла ошибка. Попробуйте позже.");
+        }
+    }
+
 }
