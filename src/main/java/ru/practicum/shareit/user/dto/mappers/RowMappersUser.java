@@ -28,13 +28,6 @@ public class RowMappersUser implements RowMapper<User> {
         return dto;
     }
 
-    public static UserDto mapToUserDtoWithoutId(User user) {
-        UserDto dto = new UserDto();
-        dto.setName(user.getName());
-        dto.setEmail(user.getEmail());
-        return dto;
-    }
-
     public static User updateUserFields(User user, UpdateUserRequest request) {
         if (request.getName() != null) {
             user.setName(request.getName());
