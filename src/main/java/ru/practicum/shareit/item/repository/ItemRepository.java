@@ -25,19 +25,19 @@ public class ItemRepository {
     private final JdbcTemplate jdbc;
     private final RowMappersItem rowMappersItem;
 
-    private final String INSERT_NEW_ITEM = "INSERT INTO items(name, description, available, owner_id) VALUES (?, ?, " +
+    private final String insertNewItem = "INSERT INTO items(name, description, available, owner_id) VALUES (?, ?, " +
             "?, ?)";
-    private static final String FIND_BY_ID_QUERY = "SELECT * FROM items WHERE id = ?";
-    private static final String UPDATE_ITEM = "UPDATE items SET name = ?, description = ?, available = ? WHERE id = ?";
-    private static final String SELECT_ALL_ITEMS_BY_USER_ID = "SELECT * FROM items WHERE owner_id = ?";
-    private static final String SEARCH_ITEMS = "SELECT * FROM items WHERE available = true AND (LOWER(name) LIKE LOWER" +
+    private static final String findByIdQuery = "SELECT * FROM items WHERE id = ?";
+    private static final String updateItem = "UPDATE items SET name = ?, description = ?, available = ? WHERE id = ?";
+    private static final String selectAllItemsById = "SELECT * FROM items WHERE owner_id = ?";
+    private static final String searchItems = "SELECT * FROM items WHERE available = true AND (LOWER(name) LIKE LOWER" +
             "(?) OR LOWER(description) LIKE LOWER(?))";
 
     public Item createItem(Long userId, NewItemRequest newItemRequest) {
         GeneratedKeyHolder keyHolder = new GeneratedKeyHolder();
         try {
             jdbc.update(connection -> {
-                PreparedStatement ps = connection.prepareStatement(INSERT_NEW_ITEM, Statement.RETURN_GENERATED_KEYS);
+                PreparedStatement ps = connection.prepareStatement(insertNewItem, Statement.RETURN_GENERATED_KEYS);
                 ps.setString(1, newItemRequest.getName());
                 ps.setString(2, newItemRequest.getDescription());
                 ps.setBoolean(3, newItemRequest.getAvailable());
@@ -57,7 +57,7 @@ public class ItemRepository {
     public Item updateItemFields(Item itemToUpdate) {
         log.info("Обновление полей у item c id {}", itemToUpdate.getId());
         try {
-            jdbc.update(UPDATE_ITEM, itemToUpdate.getName(), itemToUpdate.getDescription(),
+            jdbc.update(updateItem, itemToUpdate.getName(), itemToUpdate.getDescription(),
                     itemToUpdate.getAvailable(), itemToUpdate.getId());
             return getItemById(itemToUpdate.getId());
         } catch (DataAccessException e) {
@@ -70,7 +70,7 @@ public class ItemRepository {
     public Item getItemById(Long id) {
         try {
             log.info("Поиск вещи с id {}", id);
-            return jdbc.queryForObject(FIND_BY_ID_QUERY, rowMappersItem, id);
+            return jdbc.queryForObject(findByIdQuery, rowMappersItem, id);
         } catch (EmptyResultDataAccessException e) {
             throw new NotFoundException("Вещь с id " + id + " не существует");
         }
@@ -79,7 +79,7 @@ public class ItemRepository {
     public List<Item> getAllItems(Long id) {
         try {
             log.info("Поиск всех вещей пользователя с id {}", id);
-            return jdbc.query(SELECT_ALL_ITEMS_BY_USER_ID, rowMappersItem, id);
+            return jdbc.query(selectAllItemsById, rowMappersItem, id);
         } catch (DataAccessException e) {
             log.error("При получение всех вещей из бд произошла ошибка. Трасса: {}", e.getMessage());
             throw new ValidationException("При получении информации о вещах произошла ошибка. Попробуйте позже.");
@@ -88,7 +88,7 @@ public class ItemRepository {
 
     public List<Item> getAllItemsBySearch(String text) {
         try {
-            return jdbc.query(SEARCH_ITEMS, rowMappersItem, text, text);
+            return jdbc.query(searchItems, rowMappersItem, text, text);
         } catch (DataAccessException e) {
             log.error("При получение всех вещей по описанию и названию из бд произошла ошибка. Трасса: {}",
                     e.getMessage());

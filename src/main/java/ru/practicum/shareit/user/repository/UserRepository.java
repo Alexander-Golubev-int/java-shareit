@@ -24,16 +24,16 @@ public class UserRepository {
     private final JdbcTemplate jdbc;
     private final RowMappersUser rowMapperUser;
 
-    private static final String INSERT_NEW_USER = "INSERT INTO users(name, email) VALUES (?, ?)";
-    private static final String FIND_BY_ID_QUERY = "SELECT * FROM users WHERE id = ?";
-    private static final String UPDATE_USER = "UPDATE users SET name = ?, email = ? WHERE id = ?";
-    private static final String DELETE_USER = "DELETE FROM users WHERE id = ?";
+    private static final String insertNewUser = "INSERT INTO users(name, email) VALUES (?, ?)";
+    private static final String findByIdQuery = "SELECT * FROM users WHERE id = ?";
+    private static final String updateUser = "UPDATE users SET name = ?, email = ? WHERE id = ?";
+    private static final String deleteUser = "DELETE FROM users WHERE id = ?";
 
     public User createNewUser(NewUserRequest newUserRequest) {
         GeneratedKeyHolder keyHolder = new GeneratedKeyHolder();
         try {
             jdbc.update(connection -> {
-                PreparedStatement ps = connection.prepareStatement(INSERT_NEW_USER, Statement.RETURN_GENERATED_KEYS);
+                PreparedStatement ps = connection.prepareStatement(insertNewUser, Statement.RETURN_GENERATED_KEYS);
                 ps.setString(1, newUserRequest.getName());
                 ps.setString(2, newUserRequest.getEmail());
                 return ps;
@@ -50,7 +50,7 @@ public class UserRepository {
     public User getUserById(Long id) {
         try {
             log.info("Поиск user с id {}", id);
-            return jdbc.queryForObject(FIND_BY_ID_QUERY, rowMapperUser, id);
+            return jdbc.queryForObject(findByIdQuery, rowMapperUser, id);
         } catch (EmptyResultDataAccessException e) {
             throw new NotFoundException("Пользователь с id " + id + " не существует");
         }
@@ -60,7 +60,7 @@ public class UserRepository {
         log.info("Обновление полей у user с id: {} на новые поля name: {}, email: {}", userToUpdate.getId(),
                 userToUpdate.getName(), userToUpdate.getEmail());
         try {
-            jdbc.update(UPDATE_USER, userToUpdate.getName(), userToUpdate.getEmail(), userToUpdate.getId());
+            jdbc.update(updateUser, userToUpdate.getName(), userToUpdate.getEmail(), userToUpdate.getId());
             return getUserById(userToUpdate.getId());
         } catch (DuplicateKeyException e) {
             throw new DuplicateKeyException("Пользователь с таким email уже существует, заменить email невозможно");
@@ -68,7 +68,7 @@ public class UserRepository {
     }
 
     public void deleteUserById(Long id) {
-        jdbc.update(DELETE_USER, id);
+        jdbc.update(deleteUser, id);
         log.info("Пользователь с id {} был успешно удален", id);
     }
 }
