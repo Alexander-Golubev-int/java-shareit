@@ -1,0 +1,99 @@
+package ru.practicum.shareit.item.repository;
+
+import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.springframework.dao.DataAccessException;
+import org.springframework.dao.EmptyResultDataAccessException;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.support.GeneratedKeyHolder;
+import org.springframework.stereotype.Repository;
+import ru.practicum.shareit.exception.model.NotFoundException;
+import ru.practicum.shareit.exception.model.ValidationException;
+import ru.practicum.shareit.item.dto.NewItemRequest;
+import ru.practicum.shareit.item.dto.mappers.RowMappersItem;
+import ru.practicum.shareit.item.model.Item;
+
+import java.sql.PreparedStatement;
+import java.sql.Statement;
+import java.util.List;
+
+
+@Slf4j
+@RequiredArgsConstructor
+@Repository
+public class ItemRepository {
+    private final JdbcTemplate jdbc;
+    private final RowMappersItem rowMappersItem;
+
+    private final String insertNewItem = "INSERT INTO items(name, description, available, owner_id) VALUES (?, ?, " +
+            "?, ?)";
+    private static final String findByIdQuery = "SELECT * FROM items WHERE id = ?";
+    private static final String updateItem = "UPDATE items SET name = ?, description = ?, available = ? WHERE id = ?";
+    private static final String selectAllItemsById = "SELECT * FROM items WHERE owner_id = ?";
+    private static final String searchItems = "SELECT * FROM items WHERE available = true AND (LOWER(name) LIKE LOWER" +
+            "(?) OR LOWER(description) LIKE LOWER(?))";
+
+    public Item createItem(Long userId, NewItemRequest newItemRequest) {
+        GeneratedKeyHolder keyHolder = new GeneratedKeyHolder();
+        try {
+            jdbc.update(connection -> {
+                PreparedStatement ps = connection.prepareStatement(insertNewItem, Statement.RETURN_GENERATED_KEYS);
+                ps.setString(1, newItemRequest.getName());
+                ps.setString(2, newItemRequest.getDescription());
+                ps.setBoolean(3, newItemRequest.getAvailable());
+                ps.setLong(4, userId);
+                return ps;
+            }, keyHolder);
+            log.info("Вещь с id: {} успешно создана", keyHolder.getKey());
+        } catch (DataAccessException e) {
+            log.error("При добавлении новой вещи в бд произошла ошибка. Трасса: {}", e.getMessage());
+            throw new ValidationException("При добавлении вещи произошла ошибка. Попробуйте позже или измените тело " +
+                    "запроса.");
+        }
+        Long itemId = keyHolder.getKeyAs(Long.class);
+        return getItemById(itemId);
+    }
+
+    public Item updateItemFields(Item itemToUpdate) {
+        log.info("Обновление полей у item c id {}", itemToUpdate.getId());
+        try {
+            jdbc.update(updateItem, itemToUpdate.getName(), itemToUpdate.getDescription(),
+                    itemToUpdate.getAvailable(), itemToUpdate.getId());
+            return getItemById(itemToUpdate.getId());
+        } catch (DataAccessException e) {
+            log.error("При обновлении вещи в бд произошла ошибка. Трасса: {}", e.getMessage());
+            throw new ValidationException("При обновлении информации о вещи произошла ошибка. Попробуйте позже или " +
+                    "измените тело запроса.");
+        }
+    }
+
+    public Item getItemById(Long id) {
+        try {
+            log.info("Поиск вещи с id {}", id);
+            return jdbc.queryForObject(findByIdQuery, rowMappersItem, id);
+        } catch (EmptyResultDataAccessException e) {
+            throw new NotFoundException("Вещь с id " + id + " не существует");
+        }
+    }
+
+    public List<Item> getAllItems(Long id) {
+        try {
+            log.info("Поиск всех вещей пользователя с id {}", id);
+            return jdbc.query(selectAllItemsById, rowMappersItem, id);
+        } catch (DataAccessException e) {
+            log.error("При получение всех вещей из бд произошла ошибка. Трасса: {}", e.getMessage());
+            throw new ValidationException("При получении информации о вещах произошла ошибка. Попробуйте позже.");
+        }
+    }
+
+    public List<Item> getAllItemsBySearch(String text) {
+        try {
+            return jdbc.query(searchItems, rowMappersItem, text, text);
+        } catch (DataAccessException e) {
+            log.error("При получение всех вещей по описанию и названию из бд произошла ошибка. Трасса: {}",
+                    e.getMessage());
+            throw new ValidationException("При получении информации о вещах произошла ошибка. Попробуйте позже.");
+        }
+    }
+
+}
