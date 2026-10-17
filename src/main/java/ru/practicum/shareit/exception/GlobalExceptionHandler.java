@@ -41,7 +41,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handlerHttpMessageValidationException(ValidationException e) {
         Map<String, String> errors = new HashMap<>();
         errors.put("error:", e.getMessage());
-        log.error(e.getMessage());
+        log.warn(e.getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errors);
     }
 
@@ -49,7 +49,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleDuplicate(DuplicateKeyException e) {
         Map<String, String> errors = new HashMap<>();
         errors.put("error", e.getMessage());
-        log.error(e.getMessage());
+        log.warn(e.getMessage());
         return ResponseEntity.status(HttpStatus.CONFLICT).body(errors);
     }
 
@@ -57,7 +57,7 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleNotFound(NotFoundException e) {
         Map<String, String> errors = new HashMap<>();
         errors.put("error", e.getMessage());
-        log.error(e.getMessage());
+        log.warn(e.getMessage());
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errors);
     }
 }
