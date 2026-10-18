@@ -70,4 +70,11 @@ public class UserServiceImp implements UserService {
         userRepository.deleteById(id);
         return Map.of("message", "пользователь успешно удален");
     }
+
+    @Override
+    public User getUser(Long userId) {
+        log.info("Поиск пользователя с id: {}", userId);
+        return userRepository.findById(userId)
+                .orElseThrow(() -> new NotFoundException("Пользователь с id " + userId + " не существует"));
+    }
 }

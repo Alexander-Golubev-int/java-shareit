@@ -39,22 +39,49 @@ public class ItemServiceImp implements ItemService {
     }
 
     @Override
+    @Transactional
     public ItemDto updateItem(Long userId, Long itemId, UpdateItemRequest updateItemRequest) {
-        return null;
+        log.info("Попытка обновить информацию о вещи c id {} пользователем с userId: {}",
+                itemId, userId);
+        User user = userService.getUser(userId);
+        Item oldItem = getItem(itemId);
+        log.info("Проверка, что редактируемая вещь принадлежит владельцу вещи");
+        if (!userId.equals(oldItem.getOwner().getId())) {
+            log.warn("Ошибка. Попытка обновить вещь не принадлежащую владельцу вещи");
+            throw new NotFoundException("Вещь с id " + itemId + " не принадлежит отправителю запроса");
+        }
+        RowMappersItem.updateItemFields(oldItem, updateItemRequest);
+        return RowMappersItem.mapToItemDto(itemRepository.save(oldItem));
     }
 
     @Override
     public ItemDto getItemByID(Long userId, Long itemId) {
-        return null;
+        log.info("Поиск вещи с id: {}", itemId);
+        return RowMappersItem.mapToItemDto(itemRepository.findById(itemId)
+                .orElseThrow(() -> new NotFoundException("Вещь с id: " + itemId + " не найдена")));
     }
 
     @Override
     public List<ItemDto> getAllItems(Long userId) {
-        return List.of();
+        log.info("Попытка запросить информацию о всех вещах пользователя с userId: {}", userId);
+        userService.getUserById(userId);
+        return itemRepository.findByOwner_Id(userId).stream().map(RowMappersItem::mapToItemDto).toList();
     }
 
     @Override
     public List<ItemDto> getAllItemsBySearch(Long userId, String text) {
-        return List.of();
+        userService.getUserById(userId);
+        log.info("Поиск вещей по названию и описанию используя текст = {}", text);
+        if (text == null || text.isBlank()) {
+            return List.of();
+        }
+        return itemRepository.searchAvailableItems(text).stream().map(RowMappersItem::mapToItemDto).toList();
+    }
+
+    @Override
+    public Item getItem(Long itemId) {
+        log.info("Поиск вещи с id: {}", itemId);
+        return itemRepository.findById(itemId)
+                .orElseThrow(() -> new NotFoundException("Вещь с id: " + itemId + " не найдена"));
     }
 }
