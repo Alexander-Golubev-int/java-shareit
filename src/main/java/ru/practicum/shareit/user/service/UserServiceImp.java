@@ -41,7 +41,7 @@ public class UserServiceImp implements UserService {
         User user = RowMappersUser.mapToNewUser(userRequest);
         User savedUser = userRepository.save(user);
 
-        log.info( "Пользователь с id: {} успешно создан", savedUser.getId());
+        log.info("Пользователь с id: {} успешно создан", savedUser.getId());
         return RowMappersUser.mapToUserDtoWithId(savedUser);
     }
 

@@ -67,8 +67,15 @@ public class ItemServiceImp implements ItemService {
         log.info("Поиск вещи с id: {}", itemId);
         Item item = itemRepository.findById(itemId)
                 .orElseThrow(() -> new NotFoundException("Вещь с id: " + itemId + " не найдена"));
-        Optional<Booking> lastDateBooking = bookingRepository.findLastCompletedBooking(item.getId());
-        Optional<Booking> nearDateBooking = bookingRepository.findNearestFutureBooking(item.getId());
+
+        Optional<Booking> lastDateBooking = Optional.empty();
+        Optional<Booking> nearDateBooking = Optional.empty();
+
+        if (item.getOwner().getId().equals(userId)) {
+            lastDateBooking = bookingRepository.findLastCompletedBooking(item.getId());
+            nearDateBooking = bookingRepository.findNearestFutureBooking(item.getId());
+        }
+
         List<Comment> list = commentRepository.findCommentsByItemId(item.getId());
         return RowMappersItem.mapToItemDtoData(item, lastDateBooking, nearDateBooking, list);
     }

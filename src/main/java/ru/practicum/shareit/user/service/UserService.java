@@ -9,8 +9,12 @@ import java.util.Map;
 
 public interface UserService {
     UserDto getUserById(Long id);
+
     UserDto createUser(NewUserRequest newUserRequest);
+
     UserDto updateUser(Long id, UpdateUserRequest userRequest);
+
     Map<String, String> deleteUserById(Long id);
+
     User getUser(Long id);
 }
