@@ -35,13 +35,14 @@ public interface BookingRepository extends JpaRepository<Booking, Long> {
     @Query("SELECT b FROM Booking b WHERE b.item.owner.id = :ownerId")
     List<Booking> findAllByOwnerId(@Param("ownerId") Long ownerId);
 
-    @Query("SELECT b FROM Booking b WHERE b.item.id = :itemId AND  current_timestamp > b.endDate AND b.status = 'APPROVED' ORDER BY b" +
-            ".startDate DESC" +
-            " LIMIT 1")
+    @Query("SELECT b FROM Booking b " +
+            "WHERE b.item.id = :itemId AND b.endDate < CURRENT_TIMESTAMP " +
+            "ORDER BY b.endDate DESC")
     Optional<Booking> findLastCompletedBooking(@Param("itemId") Long itemId);
 
-    @Query("SELECT b FROM Booking b WHERE b.item.id = :itemId AND current_timestamp < b.startDate ORDER BY b" +
-            ".startDate ASC LIMIT 1")
+    @Query("SELECT b FROM Booking b " +
+            "WHERE b.item.id = :itemId AND b.startDate > CURRENT_TIMESTAMP " +
+            "ORDER BY b.startDate ASC")
     Optional<Booking> findNearestFutureBooking(@Param("itemId") Long itemId);
 
 }
