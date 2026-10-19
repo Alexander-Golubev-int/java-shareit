@@ -4,18 +4,23 @@ import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
+import ru.practicum.shareit.booking.model.Booking;
+import ru.practicum.shareit.booking.repository.BookingRepository;
+import ru.practicum.shareit.exception.model.BadRequestException;
 import ru.practicum.shareit.exception.model.NotFoundException;
-import ru.practicum.shareit.item.dto.ItemDto;
-import ru.practicum.shareit.item.dto.NewItemRequest;
-import ru.practicum.shareit.item.dto.UpdateItemRequest;
+import ru.practicum.shareit.item.dto.*;
+import ru.practicum.shareit.item.dto.mappers.RowMappersComment;
 import ru.practicum.shareit.item.dto.mappers.RowMappersItem;
+import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.item.repository.CommentRepository;
 import ru.practicum.shareit.item.repository.ItemRepository;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 import ru.practicum.shareit.user.service.UserService;
 
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -24,6 +29,8 @@ public class ItemServiceImp implements ItemService {
     private final UserService userService;
     private final UserRepository userRepository;
     private final ItemRepository itemRepository;
+    private final BookingRepository bookingRepository;
+    private final CommentRepository commentRepository;
 
     @Override
     @Transactional
@@ -55,10 +62,15 @@ public class ItemServiceImp implements ItemService {
     }
 
     @Override
-    public ItemDto getItemByID(Long userId, Long itemId) {
+    @Transactional
+    public ItemDtoDate getItemByID(Long userId, Long itemId) {
         log.info("Поиск вещи с id: {}", itemId);
-        return RowMappersItem.mapToItemDto(itemRepository.findById(itemId)
-                .orElseThrow(() -> new NotFoundException("Вещь с id: " + itemId + " не найдена")));
+        Item item = itemRepository.findById(itemId)
+                .orElseThrow(() -> new NotFoundException("Вещь с id: " + itemId + " не найдена"));
+        Optional<Booking> lastDateBooking = bookingRepository.findLastCompletedBooking(item.getId());
+        Optional<Booking> nearDateBooking = bookingRepository.findNearestFutureBooking(item.getId());
+        List<Comment> list = commentRepository.findCommentsByItemId(item.getId());
+        return RowMappersItem.mapToItemDtoData(item, lastDateBooking, nearDateBooking, list);
     }
 
     @Override
@@ -83,5 +95,21 @@ public class ItemServiceImp implements ItemService {
         log.info("Поиск вещи с id: {}", itemId);
         return itemRepository.findById(itemId)
                 .orElseThrow(() -> new NotFoundException("Вещь с id: " + itemId + " не найдена"));
+    }
+
+    @Override
+    public CommentDto createComment(Long userId, Long itemId, NewCommentRequest request) {
+        log.info("Добавление нового комментария к вещи");
+        User user = userService.getUser(userId);
+        Item item = getItem(itemId);
+        log.info("Проверка, что пользователь пользовался вещью и дата использования прошла");
+        List<Booking> list = bookingRepository.findPastBookingsByBookerAndItem(user.getId(), item.getId());
+        if (list.isEmpty()) {
+            throw new BadRequestException("Вы не можете оставлять отзыв т.к. не пользовались вещью или аренда вещи " +
+                    "еще не закончилась");
+        }
+        Comment comment = RowMappersComment.createComment(user, item, request.getText());
+        comment = commentRepository.save(comment);
+        return RowMappersComment.mapToCommentDto(comment, user);
     }
 }

@@ -5,9 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.constans.Constants;
-import ru.practicum.shareit.item.dto.ItemDto;
-import ru.practicum.shareit.item.dto.NewItemRequest;
-import ru.practicum.shareit.item.dto.UpdateItemRequest;
+import ru.practicum.shareit.item.dto.*;
 import ru.practicum.shareit.item.service.ItemService;
 
 import java.util.Collection;
@@ -25,6 +23,14 @@ public class ItemController {
         return itemService.createItem(userId, itemRequest);
     }
 
+    @PostMapping(path = "{itemId}/comment")
+    public CommentDto createComment(@RequestHeader(Constants.USER_ID_HEADER) @Validated @Positive(message = "ID " +
+                                                "должен " +
+                                           "быть больше 0") Long userId, @PathVariable Long itemId,
+                              @Validated @RequestBody NewCommentRequest newCommentRequest) {
+        return itemService.createComment(userId, itemId, newCommentRequest);
+    }
+
     @PatchMapping(path = "/{itemId}")
     public ItemDto updateItem(@RequestHeader(Constants.USER_ID_HEADER) @Validated @Positive(message = "ID должен быть " +
                                       "больше 0") Long userId, @PathVariable Long itemId,
@@ -33,7 +39,7 @@ public class ItemController {
     }
 
     @GetMapping(path = "/{itemId}")
-    public ItemDto getItem(@RequestHeader(Constants.USER_ID_HEADER) @Validated @Positive(message = "ID должен быть " +
+    public ItemDtoDate getItem(@RequestHeader(Constants.USER_ID_HEADER) @Validated @Positive(message = "ID должен быть " +
             "больше 0") Long userId, @PathVariable Long itemId) {
         return itemService.getItemByID(userId, itemId);
     }
