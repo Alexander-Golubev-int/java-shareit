@@ -8,6 +8,7 @@ import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.booking.dto.NewBookingRequest;
 import ru.practicum.shareit.booking.dto.mappers.RowMapperBooking;
 import ru.practicum.shareit.booking.model.Booking;
+import ru.practicum.shareit.booking.model.BookingState;
 import ru.practicum.shareit.booking.repository.BookingRepository;
 import ru.practicum.shareit.exception.model.BadRequestException;
 import ru.practicum.shareit.exception.model.NotFoundException;
@@ -77,41 +78,21 @@ public class BookingServiceImp implements BookingService {
     }
 
     @Override
-    public List<BookingDto> getAllRequest(Long userId, String state) {
+    public List<BookingDto> getAllRequest(Long userId, BookingState state) {
         log.info("Запрос на получение всех данных о бронирование пользователем {}", userId);
         User user = userService.getUser(userId);
-        switch (state.toLowerCase()) {
-            case "current" -> {
-                return bookingRepository.findCurrentBookingsByBooker(user.getId()).stream()
-                        .map(RowMapperBooking::mapToBookingDto)
-                        .toList();
-            }
-            case "past" -> {
-                return bookingRepository.findPastBookingsByBooker(user.getId()).stream()
-                        .map(RowMapperBooking::mapToBookingDto)
-                        .toList();
-            }
-            case "future" -> {
-                return bookingRepository.findFutureBookingsByBooker(user.getId()).stream()
-                        .map(RowMapperBooking::mapToBookingDto)
-                        .toList();
-            }
-            case "waiting" -> {
-                return bookingRepository.findWaitingBookingsByBooker(user.getId()).stream()
-                        .map(RowMapperBooking::mapToBookingDto)
-                        .toList();
-            }
-            case "rejected" -> {
-                return bookingRepository.findRejectedBookingsByBooker(user.getId()).stream()
-                        .map(RowMapperBooking::mapToBookingDto)
-                        .toList();
-            }
-            default -> {
-                return bookingRepository.findByBookerIdOrderByStartDesc(user.getId()).stream()
-                        .map(RowMapperBooking::mapToBookingDto)
-                        .toList();
-            }
-        }
+        List<Booking> bookings = switch (state) {
+            case CURRENT -> bookingRepository.findCurrentBookingsByBooker(user.getId());
+            case PAST -> bookingRepository.findPastBookingsByBooker(user.getId());
+            case FUTURE -> bookingRepository.findFutureBookingsByBooker(user.getId());
+            case WAITING -> bookingRepository.findWaitingBookingsByBooker(user.getId());
+            case REJECTED -> bookingRepository.findRejectedBookingsByBooker(user.getId());
+            case ALL -> bookingRepository.findByBookerIdOrderByStartDesc(user.getId());
+        };
+
+        return bookings.stream()
+                .map(RowMapperBooking::mapToBookingDto)
+                .toList();
     }
 
     @Override

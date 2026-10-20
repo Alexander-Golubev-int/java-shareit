@@ -6,6 +6,7 @@ import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 import ru.practicum.shareit.booking.dto.BookingDto;
 import ru.practicum.shareit.booking.dto.NewBookingRequest;
+import ru.practicum.shareit.booking.model.BookingState;
 import ru.practicum.shareit.booking.service.BookingService;
 import ru.practicum.shareit.constans.Constants;
 
@@ -41,7 +42,7 @@ public class BookingController {
 
     @GetMapping
     public List<BookingDto> getAllRequest(@RequestHeader(Constants.USER_ID_HEADER) @Validated @Positive(message = "ID" +
-            "должен быть больше 0") Long userId, @RequestParam(defaultValue = "ALL") String state) {
+            "должен быть больше 0") Long userId, @RequestParam(defaultValue = "ALL") BookingState state) {
         return bookingService.getAllRequest(userId, state);
     }
 

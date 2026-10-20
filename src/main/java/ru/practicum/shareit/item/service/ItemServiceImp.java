@@ -106,10 +106,8 @@ public class ItemServiceImp implements ItemService {
 
     @Override
     public CommentDto createComment(Long userId, Long itemId, NewCommentRequest request) {
-        log.info("Добавление нового комментария к вещи");
         User user = userService.getUser(userId);
         Item item = getItem(itemId);
-        log.info("Проверка, что пользователь пользовался вещью и дата использования прошла");
         List<Booking> list = bookingRepository.findPastBookingsByBookerAndItem(user.getId(), item.getId());
         if (list.isEmpty()) {
             throw new BadRequestException("Вы не можете оставлять отзыв т.к. не пользовались вещью или аренда вещи " +
