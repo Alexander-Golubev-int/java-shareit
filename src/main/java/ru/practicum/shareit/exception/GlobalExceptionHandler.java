@@ -8,8 +8,10 @@ import org.springframework.validation.FieldError;
 import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
+import ru.practicum.shareit.exception.model.BadRequestException;
 import ru.practicum.shareit.exception.model.NotFoundException;
 import ru.practicum.shareit.exception.model.ValidationException;
+import ru.practicum.shareit.exception.model.ErrorResponse;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -30,34 +32,33 @@ public class GlobalExceptionHandler {
     }
 
     @ExceptionHandler(InternalError.class)
-    public ResponseEntity<Map<String, String>> handlerHttpMessageInternalServerError() {
-        Map<String, String> errors = new HashMap<>();
-        log.error("Внутреняя ошибка сервера.");
-        errors.put("error:", "При обработке запроса произошла ошибка");
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(errors);
+    public ResponseEntity<ErrorResponse> handlerHttpMessageInternalServerError() {
+        log.error("Внутренняя ошибка сервера.");
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrorResponse("При обработке запроса произошла ошибка"));
     }
 
     @ExceptionHandler(ValidationException.class)
-    public ResponseEntity<Map<String, String>> handlerHttpMessageValidationException(ValidationException e) {
-        Map<String, String> errors = new HashMap<>();
-        errors.put("error:", e.getMessage());
-        log.error(e.getMessage());
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(errors);
+    public ResponseEntity<ErrorResponse> handlerHttpMessageValidationException(ValidationException e) {
+        log.warn(e.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(e.getMessage()));
     }
 
     @ExceptionHandler(DuplicateKeyException.class)
-    public ResponseEntity<Map<String, String>> handleDuplicate(DuplicateKeyException e) {
-        Map<String, String> errors = new HashMap<>();
-        errors.put("error", e.getMessage());
-        log.error(e.getMessage());
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(errors);
+    public ResponseEntity<ErrorResponse> handleDuplicate(DuplicateKeyException e) {
+        log.warn(e.getMessage());
+        return ResponseEntity.status(HttpStatus.CONFLICT).body(new ErrorResponse(e.getMessage()));
     }
 
     @ExceptionHandler(NotFoundException.class)
-    public ResponseEntity<Map<String, String>> handleNotFound(NotFoundException e) {
-        Map<String, String> errors = new HashMap<>();
-        errors.put("error", e.getMessage());
-        log.error(e.getMessage());
-        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(errors);
+    public ResponseEntity<ErrorResponse> handleNotFound(NotFoundException e) {
+        log.warn(e.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ErrorResponse(e.getMessage()));
+    }
+
+    @ExceptionHandler(BadRequestException.class)
+    public ResponseEntity<ErrorResponse> handleBadRequest(BadRequestException e) {
+
+        log.warn(e.getMessage());
+        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ErrorResponse(e.getMessage()));
     }
 }
