@@ -15,6 +15,8 @@ import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.Item;
 import ru.practicum.shareit.item.repository.CommentRepository;
 import ru.practicum.shareit.item.repository.ItemRepository;
+import ru.practicum.shareit.request.model.ItemRequest;
+import ru.practicum.shareit.request.repository.ItemRequestRepository;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 import ru.practicum.shareit.user.service.UserService;
@@ -31,6 +33,7 @@ public class ItemServiceImp implements ItemService {
     private final ItemRepository itemRepository;
     private final BookingRepository bookingRepository;
     private final CommentRepository commentRepository;
+    private final ItemRequestRepository itemRequestRepository;
 
     @Override
     @Transactional
@@ -38,11 +41,31 @@ public class ItemServiceImp implements ItemService {
         log.info("Поиск пользователя с id: {}", userId);
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new NotFoundException("Пользователь с id " + userId + " не существует"));
-        log.info("Попытка создания новой вещи {} пользователем с id: {}", itemRequest.getName(),userId);
-        Item item = RowMappersItem.mapToItemFromNewItemRequest(itemRequest, user);
-        itemRepository.save(item);
-        log.info("Вещь успешно добавлена {},", item);
-        return RowMappersItem.mapToItemDto(item);
+        log.info("Проверка, что у новой добавленной вещи есть RequestId");
+        if (itemRequest.getRequestId() != null) {
+            log.info("Проверка что существования RequestId {}", itemRequest.getRequestId());
+            Optional<ItemRequest> itemRequest1 = itemRequestRepository.findById(itemRequest.getRequestId());
+                if (itemRequest1.isPresent()) {
+                    log.info("Найден существующий запрос на создание вещи {}", itemRequest.getRequestId());
+                    log.info("Попытка создания новой вещи {} пользователем с id: {}", itemRequest.getName(),userId);
+                    Item item = RowMappersItem.mapToItemFromNewItemRequest(itemRequest, user, itemRequest1.get());
+                    itemRepository.save(item);
+                    log.info("Вещь успешно добавлена {},", item);
+                    return RowMappersItem.mapToItemDto(item);
+                } else {
+                    log.info("Попытка создания новой вещи {} пользователем с id: {}", itemRequest.getName(),userId);
+                    Item item = RowMappersItem.mapToItemFromNewItemRequest(itemRequest, user);
+                    itemRepository.save(item);
+                    log.info("Вещь успешно добавлена {},", item);
+                    return RowMappersItem.mapToItemDto(item);
+                }
+        } else {
+            log.info("Попытка создания новой вещи {} пользователем с id: {}", itemRequest.getName(),userId);
+            Item item = RowMappersItem.mapToItemFromNewItemRequest(itemRequest, user);
+            itemRepository.save(item);
+            log.info("Вещь успешно добавлена {},", item);
+            return RowMappersItem.mapToItemDto(item);
+        }
     }
 
     @Override

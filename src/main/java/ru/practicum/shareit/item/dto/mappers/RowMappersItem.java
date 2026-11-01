@@ -8,6 +8,7 @@ import ru.practicum.shareit.item.dto.NewItemRequest;
 import ru.practicum.shareit.item.dto.UpdateItemRequest;
 import ru.practicum.shareit.item.model.Comment;
 import ru.practicum.shareit.item.model.Item;
+import ru.practicum.shareit.request.model.ItemRequest;
 import ru.practicum.shareit.user.model.User;
 
 import java.util.List;
@@ -22,6 +23,15 @@ public class RowMappersItem {
         item.setDescription(newItemRequest.getDescription());
         item.setAvailable(newItemRequest.getAvailable());
         item.setOwner(userId);
+        return item;
+    }
+    public static Item mapToItemFromNewItemRequest(NewItemRequest newItemRequest, User userId, ItemRequest itemRequest) {
+        Item item = new Item();
+        item.setName(newItemRequest.getName());
+        item.setDescription(newItemRequest.getDescription());
+        item.setAvailable(newItemRequest.getAvailable());
+        item.setOwner(userId);
+        item.setRequestId(itemRequest);
         return item;
     }
 
