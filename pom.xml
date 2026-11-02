@@ -12,7 +12,13 @@
 	<groupId>ru.practicum</groupId>
 	<artifactId>shareit</artifactId>
 	<packaging>pom</packaging>
-	<version>0.0.1-SNAPSHOT</version>
+    <dependencies>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-autoconfigure</artifactId>
+        </dependency>
+    </dependencies>
+    <version>0.0.1-SNAPSHOT</version>
 
 	<name>ShareIt</name>
 
