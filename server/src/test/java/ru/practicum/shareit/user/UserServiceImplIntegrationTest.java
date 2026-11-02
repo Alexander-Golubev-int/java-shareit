@@ -6,8 +6,10 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.shareit.exception.model.NotFoundException;
 import ru.practicum.shareit.exception.model.ValidationException;
 import ru.practicum.shareit.user.dto.NewUserRequest;
+import ru.practicum.shareit.user.dto.UpdateUserRequest;
 import ru.practicum.shareit.user.dto.UserDto;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
@@ -29,11 +31,18 @@ class UserServiceImplIntegrationTest {
 
     private NewUserRequest newUserRequest;
 
+    private User user;
+
     @BeforeEach
     void setUp() {
         newUserRequest = new NewUserRequest();
         newUserRequest.setName("Test User");
         newUserRequest.setEmail("test@mail.ru");
+
+        user = new User();
+        user.setName("Existing User");
+        user.setEmail("existing@mail.ru");
+        user = userRepository.save(user);
     }
 
     @Test
@@ -52,13 +61,45 @@ class UserServiceImplIntegrationTest {
 
     @Test
     void createUser_WhenEmailExists_ShouldThrowException() {
-        User existingUser = new User();
-        existingUser.setName("Существующий пользак");
-        existingUser.setEmail("test@mail.ru");
-        userRepository.save(existingUser);
+        User duplicateUser = new User();
+        duplicateUser.setName("Duplicate");
+        duplicateUser.setEmail("test@mail.ru");
+        userRepository.save(duplicateUser);
 
         assertThatThrownBy(() -> userService.createUser(newUserRequest))
                 .isInstanceOf(ValidationException.class)
                 .hasMessageContaining("Пользователь с таким email уже существует");
+    }
+
+    @Test
+    void getUserById_WhenUserExists_ShouldReturnUser() {
+        UserDto result = userService.getUserById(user.getId());
+        assertThat(result.getId()).isEqualTo(user.getId());
+        assertThat(result.getName()).isEqualTo("Existing User");
+    }
+
+    @Test
+    void getUserById_WhenUserNotFound_ShouldThrowException() {
+        assertThatThrownBy(() -> userService.getUserById(999L))
+                .isInstanceOf(NotFoundException.class)
+                .hasMessageContaining("не существует");
+    }
+
+    @Test
+    void updateUser_ShouldUpdateAndReturnUser() {
+        UpdateUserRequest updateRequest = new UpdateUserRequest();
+        updateRequest.setName("Updated Name");
+
+        UserDto result = userService.updateUser(user.getId(), updateRequest);
+        assertThat(result.getName()).isEqualTo("Updated Name");
+
+        User updatedUser = userRepository.findById(user.getId()).orElseThrow();
+        assertThat(updatedUser.getName()).isEqualTo("Updated Name");
+    }
+
+    @Test
+    void deleteUserById_ShouldDeleteUser() {
+        userService.deleteUserById(user.getId());
+        assertThat(userRepository.findById(user.getId())).isEmpty();
     }
 }
