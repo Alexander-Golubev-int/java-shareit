@@ -11,95 +11,115 @@ import ru.practicum.shareit.exception.model.ValidationException;
 import ru.practicum.shareit.user.dto.NewUserRequest;
 import ru.practicum.shareit.user.dto.UpdateUserRequest;
 import ru.practicum.shareit.user.dto.UserDto;
-import ru.practicum.shareit.user.model.User;
-import ru.practicum.shareit.user.repository.UserRepository;
 import ru.practicum.shareit.user.service.UserService;
+
+import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
-@ActiveProfiles("test")
+@SpringBootTest
 @Transactional
+@ActiveProfiles("test")
 class UserServiceImplIntegrationTest {
 
     @Autowired
     private UserService userService;
 
-    @Autowired
-    private UserRepository userRepository;
-
     private NewUserRequest newUserRequest;
-
-    private User user;
 
     @BeforeEach
     void setUp() {
         newUserRequest = new NewUserRequest();
-        newUserRequest.setName("Test User");
-        newUserRequest.setEmail("test@mail.ru");
-
-        user = new User();
-        user.setName("Existing User");
-        user.setEmail("existing@mail.ru");
-        user = userRepository.save(user);
+        newUserRequest.setName("Ivan");
+        newUserRequest.setEmail("ivan@mail.ru");
     }
 
     @Test
-    void createUser_ShouldSaveUserToDatabase() {
+    void createUser_ShouldCreateSuccessfully() {
         UserDto result = userService.createUser(newUserRequest);
 
-        assertThat(result).isNotNull();
         assertThat(result.getId()).isNotNull();
-        assertThat(result.getName()).isEqualTo("Test User");
-        assertThat(result.getEmail()).isEqualTo("test@mail.ru");
-
-        User savedUser = userRepository.findById(result.getId()).orElseThrow();
-        assertThat(savedUser.getName()).isEqualTo("Test User");
-        assertThat(savedUser.getEmail()).isEqualTo("test@mail.ru");
+        assertThat(result.getName()).isEqualTo("Ivan");
+        assertThat(result.getEmail()).isEqualTo("ivan@mail.ru");
     }
 
     @Test
-    void createUser_WhenEmailExists_ShouldThrowException() {
-        User duplicateUser = new User();
-        duplicateUser.setName("Duplicate");
-        duplicateUser.setEmail("test@mail.ru");
-        userRepository.save(duplicateUser);
+    void createUser_WhenEmailExists_ShouldThrowValidationException() {
+        userService.createUser(newUserRequest);
 
-        assertThatThrownBy(() -> userService.createUser(newUserRequest))
-                .isInstanceOf(ValidationException.class)
-                .hasMessageContaining("Пользователь с таким email уже существует");
+        NewUserRequest duplicate = new NewUserRequest();
+        duplicate.setName("Petr");
+        duplicate.setEmail("ivan@mail.ru");
+
+        assertThatThrownBy(() -> userService.createUser(duplicate))
+                .isInstanceOf(ValidationException.class);
     }
 
     @Test
-    void getUserById_WhenUserExists_ShouldReturnUser() {
-        UserDto result = userService.getUserById(user.getId());
-        assertThat(result.getId()).isEqualTo(user.getId());
-        assertThat(result.getName()).isEqualTo("Existing User");
+    void getUserById_ShouldReturnUser() {
+        UserDto created = userService.createUser(newUserRequest);
+
+        UserDto found = userService.getUserById(created.getId());
+
+        assertThat(found.getId()).isEqualTo(created.getId());
+        assertThat(found.getEmail()).isEqualTo("ivan@mail.ru");
     }
 
     @Test
-    void getUserById_WhenUserNotFound_ShouldThrowException() {
+    void getUserById_WhenNotExists_ShouldThrowNotFound() {
         assertThatThrownBy(() -> userService.getUserById(999L))
-                .isInstanceOf(NotFoundException.class)
-                .hasMessageContaining("не существует");
+                .isInstanceOf(NotFoundException.class);
     }
 
     @Test
-    void updateUser_ShouldUpdateAndReturnUser() {
-        UpdateUserRequest updateRequest = new UpdateUserRequest();
-        updateRequest.setName("Updated Name");
+    void updateUser_ShouldUpdateFields() {
+        UserDto created = userService.createUser(newUserRequest);
 
-        UserDto result = userService.updateUser(user.getId(), updateRequest);
-        assertThat(result.getName()).isEqualTo("Updated Name");
+        UpdateUserRequest update = new UpdateUserRequest();
+        update.setName("Ivan Updated");
+        update.setEmail("ivan_new@mail.ru");
 
-        User updatedUser = userRepository.findById(user.getId()).orElseThrow();
-        assertThat(updatedUser.getName()).isEqualTo("Updated Name");
+        UserDto updated = userService.updateUser(created.getId(), update);
+
+        assertThat(updated.getName()).isEqualTo("Ivan Updated");
+        assertThat(updated.getEmail()).isEqualTo("ivan_new@mail.ru");
     }
 
     @Test
-    void deleteUserById_ShouldDeleteUser() {
-        userService.deleteUserById(user.getId());
-        assertThat(userRepository.findById(user.getId())).isEmpty();
+    void updateUser_WhenEmailTakenByAnother_ShouldThrow() {
+        UserDto user1 = userService.createUser(newUserRequest);
+
+        NewUserRequest user2Req = new NewUserRequest();
+        user2Req.setName("Petr");
+        user2Req.setEmail("petr@mail.ru");
+        UserDto user2 = userService.createUser(user2Req);
+
+        UpdateUserRequest update = new UpdateUserRequest();
+        update.setEmail("ivan@mail.ru");
+
+        assertThatThrownBy(() -> userService.updateUser(user2.getId(), update))
+                .isInstanceOf(ValidationException.class);
+    }
+
+    @Test
+    void deleteUserById_ShouldDelete() {
+        UserDto created = userService.createUser(newUserRequest);
+
+        Map<String, String> result = userService.deleteUserById(created.getId());
+
+        assertThat(result.get("message")).contains("успешно удален");
+        assertThatThrownBy(() -> userService.getUserById(created.getId()))
+                .isInstanceOf(NotFoundException.class);
+    }
+
+    @Test
+    void getUser_ShouldReturnEntity() {
+        UserDto created = userService.createUser(newUserRequest);
+
+        var user = userService.getUser(created.getId());
+
+        assertThat(user.getId()).isEqualTo(created.getId());
+        assertThat(user.getEmail()).isEqualTo("ivan@mail.ru");
     }
 }

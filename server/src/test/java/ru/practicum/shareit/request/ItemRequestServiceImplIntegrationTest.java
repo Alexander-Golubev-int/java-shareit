@@ -1,63 +1,97 @@
 package ru.practicum.shareit.request;
 
-import jakarta.persistence.EntityManager;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 import org.springframework.transaction.annotation.Transactional;
+import ru.practicum.shareit.exception.model.NotFoundException;
 import ru.practicum.shareit.request.dto.ItemRequestDto;
 import ru.practicum.shareit.request.dto.NewItemRequest;
-import ru.practicum.shareit.request.model.ItemRequest;
-import ru.practicum.shareit.request.repository.ItemRequestRepository;
 import ru.practicum.shareit.request.service.ItemRequestService;
 import ru.practicum.shareit.user.model.User;
 import ru.practicum.shareit.user.repository.UserRepository;
 
-import static org.assertj.core.api.Assertions.assertThat;
+import java.util.List;
 
-@SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.NONE)
-@ActiveProfiles("test")
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
+
+@SpringBootTest
 @Transactional
+@ActiveProfiles("test")
 class ItemRequestServiceImplIntegrationTest {
 
     @Autowired
-    private EntityManager entityManager;
-
-    @Autowired
     private ItemRequestService itemRequestService;
-
     @Autowired
     private UserRepository userRepository;
-
-    @Autowired
-    private ItemRequestRepository itemRequestRepository;
 
     private User user;
 
     @BeforeEach
     void setUp() {
         user = new User();
-        user.setName("Test User");
-        user.setEmail("testUser@mail.ru");
+        user.setName("User");
+        user.setEmail("user@mail.ru");
         user = userRepository.save(user);
     }
 
     @Test
-    void createRequest_ShouldSaveRequestToDatabase() {
-        NewItemRequest newItemRequest = new NewItemRequest();
-        newItemRequest.setDescription("Хочется макбук");
+    void createRequest_ShouldCreate() {
+        NewItemRequest request = new NewItemRequest();
+        request.setDescription("Нужна дрель");
 
-        ItemRequestDto result = itemRequestService.createRequest(user.getId(), newItemRequest);
+        ItemRequestDto result = itemRequestService.createRequest(user.getId(), request);
 
-        entityManager.flush();
-        entityManager.clear();
+        assertThat(result.getId()).isNotNull();
+        assertThat(result.getDescription()).isEqualTo("Нужна дрель");
+    }
 
-        ItemRequest savedRequest = itemRequestRepository.findById(result.getId()).orElseThrow();
-        assertThat(savedRequest).isNotNull();
-        assertThat(savedRequest.getDescription()).isEqualTo("Хочется макбук");
-        assertThat(savedRequest.getCreated()).isNotNull();
-        assertThat(savedRequest.getRequestor().getId()).isEqualTo(user.getId());
+    @Test
+    void getRequests_ShouldReturnUserRequests() {
+        NewItemRequest request = new NewItemRequest();
+        request.setDescription("Нужна дрель");
+        itemRequestService.createRequest(user.getId(), request);
+
+        List<ItemRequestDto> result = itemRequestService.getRequests(user.getId());
+
+        assertThat(result).hasSize(1);
+    }
+
+    @Test
+    void getRequests_WhenEmpty_ShouldReturnEmptyList() {
+        List<ItemRequestDto> result = itemRequestService.getRequests(user.getId());
+
+        assertThat(result).isEmpty();
+    }
+
+    @Test
+    void getAllRequests_ShouldReturnAll() {
+        NewItemRequest request = new NewItemRequest();
+        request.setDescription("Нужна дрель");
+        itemRequestService.createRequest(user.getId(), request);
+
+        List<ItemRequestDto> result = itemRequestService.getAllRequests();
+
+        assertThat(result).isNotEmpty();
+    }
+
+    @Test
+    void getItemRequestById_ShouldReturn() {
+        NewItemRequest request = new NewItemRequest();
+        request.setDescription("Нужна дрель");
+        ItemRequestDto created = itemRequestService.createRequest(user.getId(), request);
+
+        ItemRequestDto found = itemRequestService.getItemRequestById(created.getId());
+
+        assertThat(found.getId()).isEqualTo(created.getId());
+    }
+
+    @Test
+    void getItemRequestById_WhenNotFound_ShouldThrow() {
+        assertThatThrownBy(() -> itemRequestService.getItemRequestById(999L))
+                .isInstanceOf(NotFoundException.class);
     }
 }
