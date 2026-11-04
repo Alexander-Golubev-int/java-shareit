@@ -34,3 +34,26 @@ build/
 
 ### Docker volumes ###
 volumes/
+
+# H2 database files
+*.db
+*.trace.db
+db/
+# Compiled class files
+*.class
+*.jar
+*.war
+
+# IDE
+.idea/
+*.iml
+.DS_Store
+
+# Build
+target/
+**/target/
+
+# Databases
+*.db
+*.trace.db
+db/
